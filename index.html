@@ -360,9 +360,9 @@ function startCountdown(callback) {
 ------------------------------------------------------ */
 function resetGameSingle() {
   snake = [
-    { x: 15, y: 15 },
-    { x: 14, y: 15 },
-    { x: 13, y: 15 },
+    { x: 1, y: 1 },//頭
+    { x: 0, y: 1 },
+    { x: 0, y: 2 },
   ];
   direction        = { x: 1, y: 0 };
   pendingDirection = { x: 1, y: 0 };
@@ -376,18 +376,18 @@ function resetGameSingle() {
 function resetGameVersus() {
   // P1 左上
   snake1 = [
-    { x: 3, y: 5 },
-    { x: 2, y: 5 },
-    { x: 1, y: 5 },
+    { x: 1, y: 1 },  // 頭
+    { x: 0, y: 1 },
+    { x: 0, y: 2 },
   ];
   dir1        = { x: 1,  y: 0 };
   pendingDir1 = { x: 1,  y: 0 };
 
   // P2 左下
   snake2 = [
-    { x: 3, y: 24 },
-    { x: 2, y: 24 },
-    { x: 1, y: 24 },
+    { x: GRID_W - 2, y: GRID_H - 2 },  // 頭
+    { x: GRID_W - 1, y: GRID_H - 2 },
+    { x: GRID_W - 1, y: GRID_H - 3 },
   ];
   dir2        = { x: 1,  y: 0 };
   pendingDir2 = { x: 1,  y: 0 };
