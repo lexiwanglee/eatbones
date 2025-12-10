@@ -199,6 +199,10 @@ canvas.height = HEIGHT;
 
 /* ------------------------------------------------------
    🎵 音效
+   檔案請放在同一個資料夾：
+   - bone.wav
+   - gameover_waiwai.wav
+   - countdown.wav
 ------------------------------------------------------ */
 const boneSound       = new Audio("bone.wav");
 const gameoverSound   = new Audio("gameover_waiwai.wav");
@@ -360,9 +364,9 @@ function startCountdown(callback) {
 ------------------------------------------------------ */
 function resetGameSingle() {
   snake = [
-    { x: 1, y: 1 },//頭
-    { x: 0, y: 1 },
-    { x: 0, y: 2 },
+    { x: 15, y: 15 },
+    { x: 14, y: 15 },
+    { x: 13, y: 15 },
   ];
   direction        = { x: 1, y: 0 };
   pendingDirection = { x: 1, y: 0 };
@@ -376,18 +380,18 @@ function resetGameSingle() {
 function resetGameVersus() {
   // P1 左上
   snake1 = [
-    { x: 1, y: 1 },  // 頭
-    { x: 0, y: 1 },
-    { x: 0, y: 2 },
+    { x: 3, y: 5 },
+    { x: 2, y: 5 },
+    { x: 1, y: 5 },
   ];
   dir1        = { x: 1,  y: 0 };
   pendingDir1 = { x: 1,  y: 0 };
 
   // P2 左下
   snake2 = [
-    { x: GRID_W - 2, y: GRID_H - 2 },  // 頭
-    { x: GRID_W - 1, y: GRID_H - 2 },
-    { x: GRID_W - 1, y: GRID_H - 3 },
+    { x: 3, y: 24 },
+    { x: 2, y: 24 },
+    { x: 1, y: 24 },
   ];
   dir2        = { x: 1,  y: 0 };
   pendingDir2 = { x: 1,  y: 0 };
@@ -825,10 +829,9 @@ function draw() {
 }
 
 /* ------------------------------------------------------
-   🔁 遊戲迴圈（用 requestAnimationFrame + 動態速度）
+   🔁 遊戲迴圈（requestAnimationFrame + 動態速度）
 ------------------------------------------------------ */
 function gameLoop(timestamp) {
-  // 初次呼叫時 timestamp 會有值
   if (!lastMoveTime) lastMoveTime = timestamp;
 
   const nowSpeed = getCurrentSpeed();
@@ -852,13 +855,12 @@ function gameLoop(timestamp) {
 }
 
 /* ------------------------------------------------------
-   🚀 啟動：載入排行榜 + 畫出背景給主畫面
+   🚀 啟動
 ------------------------------------------------------ */
 loadLeaderboard();
 renderLeaderboard();
-draw();   // 先畫一張背景給主選單當底
+draw();                 // 背景 + 樹 + 太陽
 requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
-
