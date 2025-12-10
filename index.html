@@ -149,7 +149,7 @@
 
 <!-- 主選單 -->
 <div id="start-screen">
-  <h1 class="title">🐕 狗狗吃骨頭 </h1>
+  <h1 class="title">🐕 狗狗吃骨頭 Snake</h1>
   <div class="subtitle">選擇遊戲模式</div>
 
   <div class="input-row">
@@ -186,7 +186,11 @@ const GRID_W = 30;
 const GRID_H = 30;
 const WIDTH   = CELL_SIZE * GRID_W;
 const HEIGHT  = CELL_SIZE * GRID_H;
-const SPEED   = 120;   // ms
+
+// 動態速度：從比較慢開始，每 10 分加快一點
+const BASE_SPEED = 180;   // 起始速度（毫秒，越大越慢）
+const MIN_SPEED  = 70;    // 最快不超過這麼快
+const SPEED_STEP = 15;    // 每一級（10 分）速度縮短多少 ms
 
 const canvas = document.getElementById("game");
 const ctx    = canvas.getContext("2d");
@@ -195,10 +199,6 @@ canvas.height = HEIGHT;
 
 /* ------------------------------------------------------
    🎵 音效
-   檔案請放在同一個資料夾：
-   - bone.wav              ← 吃到骨頭
-   - gameover_waiwai.wav   ← Game Over
-   - countdown.wav         ← 倒數 4 3 2 1 GO
 ------------------------------------------------------ */
 const boneSound       = new Audio("bone.wav");
 const gameoverSound   = new Audio("gameover_waiwai.wav");
@@ -226,9 +226,7 @@ function loadLeaderboard() {
 function saveLeaderboard() {
   try {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 }
 
 function addScoreToLeaderboard(name, score) {
@@ -293,6 +291,9 @@ let gameOver = false;
 let gameMode = null;  // "single" | "versus" | null
 let heartEffects = [];
 
+// 動態速度用
+let lastMoveTime = 0;
+
 /* ------------------------------------------------------
    🎮 主選單與啟動
 ------------------------------------------------------ */
@@ -318,6 +319,7 @@ function startGameSequence(mode) {
     } else {
       resetGameVersus();
     }
+    lastMoveTime = 0; // 倒數完重新計時
   });
 }
 
@@ -334,7 +336,7 @@ function startCountdown(callback) {
     countdownElem.offsetHeight; // 強制 reflow
     countdownElem.style.animation = "pop 0.4s ease-out";
 
-    // 播倒數音效（3、2、1、GO 都敲一下）
+    // 倒數音效（3、2、1、GO 都敲一下）
     try {
       countdownBeep.currentTime = 0;
       countdownBeep.play().catch(()=>{});
@@ -372,21 +374,23 @@ function resetGameSingle() {
 }
 
 function resetGameVersus() {
+  // P1 左上
   snake1 = [
-    { x: 10, y: 15 },
-    { x: 9,  y: 15 },
-    { x: 8,  y: 15 },
+    { x: 3, y: 5 },
+    { x: 2, y: 5 },
+    { x: 1, y: 5 },
   ];
   dir1        = { x: 1,  y: 0 };
   pendingDir1 = { x: 1,  y: 0 };
 
+  // P2 左下
   snake2 = [
-    { x: 20, y: 15 },
-    { x: 21, y: 15 },
-    { x: 22, y: 15 },
+    { x: 3, y: 24 },
+    { x: 2, y: 24 },
+    { x: 1, y: 24 },
   ];
-  dir2        = { x: -1, y: 0 };
-  pendingDir2 = { x: -1, y: 0 };
+  dir2        = { x: 1,  y: 0 };
+  pendingDir2 = { x: 1,  y: 0 };
 
   score1 = 0;
   score2 = 0;
@@ -419,6 +423,22 @@ function randomFoodVersus() {
     ) {
       return { x, y };
     }
+  }
+}
+
+/* ------------------------------------------------------
+   ⚡ 依分數計算目前速度
+------------------------------------------------------ */
+function getCurrentSpeed() {
+  if (!gameMode) return BASE_SPEED;
+
+  if (gameMode === "single") {
+    const level = Math.floor(score / 10);           // 每 10 分升一級
+    return Math.max(BASE_SPEED - level * SPEED_STEP, MIN_SPEED);
+  } else {
+    const total = score1 + score2;                  // 雙人用總分來加速
+    const level = Math.floor(total / 10);
+    return Math.max(BASE_SPEED - level * SPEED_STEP, MIN_SPEED);
   }
 }
 
@@ -508,17 +528,19 @@ function changeDir2(dx, dy) {
 }
 
 /* ------------------------------------------------------
-   🐕 單人移動邏輯
+   🐕 單人移動邏輯（穿牆，不出界死亡）
 ------------------------------------------------------ */
 function moveSingle() {
   const head = snake[0];
-  const newHead = { x: head.x + direction.x, y: head.y + direction.y };
 
-  if (
-    newHead.x < 0 || newHead.x >= GRID_W ||
-    newHead.y < 0 || newHead.y >= GRID_H ||
-    snake.some(s => s.x === newHead.x && s.y === newHead.y)
-  ) {
+  // ✅ 穿牆：用環狀座標
+  const newHead = {
+    x: (head.x + direction.x + GRID_W) % GRID_W,
+    y: (head.y + direction.y + GRID_H) % GRID_H
+  };
+
+  // 撞到自己才會死
+  if (snake.some(s => s.x === newHead.x && s.y === newHead.y)) {
     triggerGameOverSingle();
     return;
   }
@@ -555,23 +577,24 @@ function triggerGameOverSingle() {
 }
 
 /* ------------------------------------------------------
-   🐕🐕 雙人移動邏輯
+   🐕🐕 雙人移動邏輯（穿牆，撞自己/對手才死）
 ------------------------------------------------------ */
 function moveVersus() {
   const head1 = snake1[0];
   const head2 = snake2[0];
-  const newHead1 = { x: head1.x + dir1.x, y: head1.y + dir1.y };
-  const newHead2 = { x: head2.x + dir2.x, y: head2.y + dir2.y };
+
+  // ✅ 穿牆
+  const newHead1 = {
+    x: (head1.x + dir1.x + GRID_W) % GRID_W,
+    y: (head1.y + dir1.y + GRID_H) % GRID_H
+  };
+  const newHead2 = {
+    x: (head2.x + dir2.x + GRID_W) % GRID_W,
+    y: (head2.y + dir2.y + GRID_H) % GRID_H
+  };
 
   let dead1 = false;
   let dead2 = false;
-
-  function outOfBounds(p) {
-    return (p.x < 0 || p.x >= GRID_W || p.y < 0 || p.y >= GRID_H);
-  }
-
-  if (outOfBounds(newHead1)) dead1 = true;
-  if (outOfBounds(newHead2)) dead2 = true;
 
   // 撞到自己
   if (snake1.some(s => s.x === newHead1.x && s.y === newHead1.y)) dead1 = true;
@@ -749,7 +772,7 @@ function draw() {
       for (const seg of snake2) {
         const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
         const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
-        ctx.fillText("🐩", cx, cy); // P2
+        ctx.fillText("🐶", cx, cy); // P2
       }
     }
   }
@@ -802,21 +825,31 @@ function draw() {
 }
 
 /* ------------------------------------------------------
-   🔁 遊戲迴圈
+   🔁 遊戲迴圈（用 requestAnimationFrame + 動態速度）
 ------------------------------------------------------ */
-function gameLoop() {
-  if (gameMode === "single" && !gameOver) {
-    direction = { ...pendingDirection };
-    moveSingle();
-  } else if (gameMode === "versus" && !gameOver) {
-    dir1 = { ...pendingDir1 };
-    dir2 = { ...pendingDir2 };
-    moveVersus();
-  }
-  draw();
-}
+function gameLoop(timestamp) {
+  // 初次呼叫時 timestamp 會有值
+  if (!lastMoveTime) lastMoveTime = timestamp;
 
-setInterval(gameLoop, SPEED);
+  const nowSpeed = getCurrentSpeed();
+  const delta = timestamp - lastMoveTime;
+
+  if (gameMode && !gameOver && delta >= nowSpeed) {
+    lastMoveTime = timestamp;
+
+    if (gameMode === "single") {
+      direction = { ...pendingDirection };
+      moveSingle();
+    } else if (gameMode === "versus") {
+      dir1 = { ...pendingDir1 };
+      dir2 = { ...pendingDir2 };
+      moveVersus();
+    }
+  }
+
+  draw();
+  requestAnimationFrame(gameLoop);
+}
 
 /* ------------------------------------------------------
    🚀 啟動：載入排行榜 + 畫出背景給主畫面
@@ -824,6 +857,8 @@ setInterval(gameLoop, SPEED);
 loadLeaderboard();
 renderLeaderboard();
 draw();   // 先畫一張背景給主選單當底
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
+
