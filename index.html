@@ -1,866 +1,850 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<title>狗狗吃骨頭｜Dog Park Snake</title>
+  <meta charset="UTF-8" />
+  <title>昭君吃骨頭｜Dog Park Snake</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #020617;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .wrapper { text-align: center; }
+    canvas {
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.6);
+      background: #000;
+      display: block;
+      margin: 0 auto 10px;
+    }
+    .hint {
+      font-size: 14px;
+      color: #cbd5f5;
+      margin-top: 4px;
+    }
 
-<style>
-  body {
-    margin: 0;
-    background: #000;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
+    /* --- 主選單 Overlay --- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      z-index: 20;
+    }
+    .overlay.hidden { display: none; }
 
-  canvas {
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    background: #000;
-    display: block;
-  }
+    .menu-card {
+      background: rgba(15,23,42,0.96);
+      border-radius: 20px;
+      padding: 24px 28px 20px;
+      width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.65);
+    }
+    .menu-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .mode-tabs {
+      display: flex;
+      margin-bottom: 14px;
+      border-radius: 999px;
+      background: #020617;
+      padding: 3px;
+      gap: 4px;
+    }
+    .mode-tab {
+      flex: 1;
+      border: none;
+      border-radius: 999px;
+      padding: 8px 0;
+      font-size: 14px;
+      cursor: pointer;
+      background: transparent;
+      color: #9ca3af;
+      transition: all 0.18s ease-out;
+    }
+    .mode-tab.active {
+      background: #22c55e;
+      color: #022c22;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(34,197,94,0.6);
+    }
 
-  /* --- 主選單 --- */
-  #start-screen {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(1px);
-    z-index: 20;
-    text-shadow: 0 2px 5px rgba(0,0,0,0.4);
-  }
+    .menu-row {
+      text-align: left;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .menu-row label {
+      display: block;
+      margin-bottom: 4px;
+      color: #e5e7eb;
+    }
+    .menu-row input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      padding: 8px 10px;
+      outline: none;
+      background: #020617;
+      color: #f9fafb;
+      font-size: 14px;
+    }
+    .menu-row input::placeholder { color: #6b7280; }
 
-  .title {
-    font-size: 38px;
-    margin-bottom: 5px;
-  }
+    .menu-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+    }
+    .primary-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 10px 30px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #22c55e;
+      color: #022c22;
+      box-shadow: 0 0 18px rgba(34,197,94,0.7);
+      transition: transform 0.12s ease-out, box-shadow 0.12s;
+    }
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 24px rgba(34,197,94,0.95);
+    }
+    .primary-btn:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 0 12px rgba(34,197,94,0.6);
+    }
+    .menu-small-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: left;
+    }
+    .hidden { display: none; }
 
-  .subtitle {
-    font-size: 20px;
-    margin-bottom: 18px;
-  }
+    /* --- 倒數泡泡 --- */
+    #countdownOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      z-index: 30;
+    }
+    #countdownOverlay.hidden { display: none; }
 
-  .input-row {
-    margin-bottom: 8px;
-  }
-
-  .input-row label {
-    margin-right: 6px;
-  }
-
-  .name-input {
-    width: 220px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: none;
-    font-size: 16px;
-  }
-
-  .mode-buttons {
-    margin-top: 10px;
-    margin-bottom: 20px;
-  }
-
-  .big-btn {
-    width: 220px;
-    padding: 12px;
-    margin: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    background: #4ade80;
-    color: #000;
-    transition: 0.2s;
-  }
-  .big-btn.secondary {
-    background: #22c55e;
-  }
-  .big-btn:hover {
-    transform: scale(1.05);
-    filter: brightness(1.05);
-  }
-
-  .tips {
-    font-size: 13px;
-    opacity: 0.85;
-    margin-bottom: 12px;
-  }
-
-  /* --- 排行榜 --- */
-  #leaderboard {
-    background: rgba(15,23,42,0.9);
-    padding: 12px 18px;
-    border-radius: 12px;
-    max-width: 320px;
-  }
-
-  #leaderboard h3 {
-    margin: 0 0 6px 0;
-    font-size: 18px;
-  }
-
-  #leaderboard small {
-    opacity: 0.7;
-  }
-
-  #leaderboard-list {
-    list-style: decimal;
-    padding-left: 20px;
-    margin: 6px 0 0 0;
-    font-size: 14px;
-    text-align: left;
-  }
-
-  #leaderboard-list li span.name {
-    font-weight: 600;
-  }
-  #leaderboard-list li span.score {
-    color: #facc15;
-  }
-
-  /* --- 倒數動畫 --- */
-  #countdown {
-    position: absolute;
-    top: 45%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 88px;
-    z-index: 30;
-    display: none;
-    animation: pop 0.4s ease-out;
-  }
-
-  @keyframes pop {
-    0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
-    70%  { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
-  }
-</style>
+    #countdownBubble {
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.92);
+      color: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 64px;
+      font-weight: 700;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+      animation: pop 0.9s ease-out forwards;
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.3); opacity: 0; }
+      25%  { transform: scale(1.1); opacity: 1; }
+      80%  { transform: scale(1.0); opacity: 1; }
+      100% { transform: scale(0.5); opacity: 0; }
+    }
+  </style>
 </head>
 <body>
-
-<!-- 主選單 -->
-<div id="start-screen">
-  <h1 class="title">🐕 狗狗吃骨頭 Snake</h1>
-  <div class="subtitle">選擇遊戲模式</div>
-
-  <div class="input-row">
-    <label for="player-name">玩家名稱：</label>
-    <input id="player-name" class="name-input" type="text" placeholder="例如：Lexi" />
-  </div>
-  <div class="tips">
-    ⌨ 單人：方向鍵 / WASD　|　雙人：P1=WASD、P2=方向鍵　|　R：再玩一次　M：回主選單
-  </div>
-
-  <div class="mode-buttons">
-    <button class="big-btn" id="btn-start-single">單人排行模式</button>
-    <button class="big-btn secondary" id="btn-start-versus">雙人對戰模式</button>
-  </div>
-
-  <div id="leaderboard">
-    <h3>🏆 單人排行榜</h3>
-    <small>只記錄本台電腦前 10 名喔</small>
-    <ol id="leaderboard-list"></ol>
+<div class="wrapper">
+  <canvas id="game"></canvas>
+  <div class="hint">
+    ⌨️ 單人：方向鍵 / WASD ｜ 雙人：P1＝WASD，P2＝方向鍵 ｜ R 再玩一次 ｜ M 回主選單
   </div>
 </div>
 
-<!-- IG Reels 風格倒數 -->
-<div id="countdown"></div>
+<!-- 主選單 -->
+<div id="menuOverlay" class="overlay">
+  <div class="menu-card">
+    <div class="menu-title">🐶 昭君吃骨頭</div>
+    <div class="mode-tabs">
+      <button id="tabSingle" class="mode-tab active">單人排行</button>
+      <button id="tabVersus" class="mode-tab">雙人對戰</button>
+    </div>
 
-<canvas id="game"></canvas>
+    <!-- 單人設定 -->
+    <div id="panelSingle">
+      <div class="menu-row">
+        <label>玩家名稱</label>
+        <input id="singleNameInput" type="text" placeholder="例如：Lexi" />
+      </div>
+      <div class="menu-actions">
+        <button id="btnStartSingle" class="primary-btn">開始單人遊戲</button>
+      </div>
+      <div class="menu-small-hint">
+        ▸ 操作：方向鍵 / WASD 皆可<br>
+        ▸ 撞牆會從另一側穿出，撞到自己就 Game Over
+      </div>
+    </div>
+
+    <!-- 雙人設定 -->
+    <div id="panelVersus" class="hidden">
+      <div class="menu-row">
+        <label>P1 名稱（WASD）</label>
+        <input id="p1NameInput" type="text" placeholder="例如：Player 1" />
+      </div>
+      <div class="menu-row">
+        <label>P2 名稱（方向鍵）</label>
+        <input id="p2NameInput" type="text" placeholder="例如：Player 2" />
+      </div>
+      <div class="menu-actions">
+        <button id="btnStartVersus" class="primary-btn">開始雙人對戰</button>
+      </div>
+      <div class="menu-small-hint">
+        ▸ P1：WASD 控制左上狗狗 🐕<br>
+        ▸ P2：方向鍵控制左下狗狗 🐩<br>
+        ▸ 撞牆會穿出；撞到自己或對手（含頭撞頭）就結束
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 倒數泡泡 -->
+<div id="countdownOverlay" class="hidden">
+  <div id="countdownBubble">3</div>
+</div>
 
 <script>
-/* ------------------------------------------------------
-   🐶 基本設定
------------------------------------------------------- */
-const CELL_SIZE = 24;
-const GRID_W = 30;
-const GRID_H = 30;
-const WIDTH   = CELL_SIZE * GRID_W;
-const HEIGHT  = CELL_SIZE * GRID_H;
+  // ======== 音效 ========
+  const boneSound       = new Audio("bone.wav");
+  const gameoverSound   = new Audio("gameover_waiwai.wav");
+  const countdownSound  = new Audio("countdown.wav");
+  boneSound.volume      = 0.9;
+  gameoverSound.volume  = 0.9;
+  countdownSound.volume = 0.9;
 
-// 動態速度：從比較慢開始，每 10 分加快一點
-const BASE_SPEED = 180;   // 起始速度（毫秒，越大越慢）
-const MIN_SPEED  = 70;    // 最快不超過這麼快
-const SPEED_STEP = 15;    // 每一級（10 分）速度縮短多少 ms
+  // ======== 遊戲設定 ========
+  const CELL_SIZE   = 24;
+  const GRID_WIDTH  = 30;
+  const GRID_HEIGHT = 30;
+  const WIDTH  = CELL_SIZE * GRID_WIDTH;
+  const HEIGHT = CELL_SIZE * GRID_HEIGHT;
 
-const canvas = document.getElementById("game");
-const ctx    = canvas.getContext("2d");
-canvas.width  = WIDTH;
-canvas.height = HEIGHT;
+  const SKY_COLOR   = "#9fd5ff";
+  const GRASS_COLOR = "#15803d";
+  const PATH_COLOR  = "#4b5563";
 
-/* ------------------------------------------------------
-   🎵 音效
-   檔案請放在同一個資料夾：
-   - bone.wav
-   - gameover_waiwai.wav
-   - countdown.wav
------------------------------------------------------- */
-const boneSound       = new Audio("bone.wav");
-const gameoverSound   = new Audio("gameover_waiwai.wav");
-const countdownBeep   = new Audio("countdown.wav");
-boneSound.volume      = 1.0;
-gameoverSound.volume  = 1.0;
-countdownBeep.volume  = 1.0;
+  // 速度：一開始慢一點，每 10 分稍微加快
+  const BASE_SPEED = 150; // ms
+  const MIN_SPEED  = 90;
+  const SPEED_STEP = 20;
 
-/* ------------------------------------------------------
-   🏆 排行榜（localStorage，單人用）
------------------------------------------------------- */
-const LEADERBOARD_KEY = "dogpark_snake_leaderboard_v1";
-let leaderboard = [];
-let currentPlayerName = "匿名狗狗";
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  canvas.width  = WIDTH;
+  canvas.height = HEIGHT;
 
-function loadLeaderboard() {
-  try {
-    const raw = localStorage.getItem(LEADERBOARD_KEY);
-    leaderboard = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    leaderboard = [];
+  // ======== 狀態變數 ========
+  let currentMode  = "menu"; // 'menu' | 'single' | 'versus'
+  let gameRunning  = false;
+  let gameOver     = false;
+  let countingDown = false;
+
+  // 倒數
+  const countdownOverlay = document.getElementById("countdownOverlay");
+  const countdownBubble  = document.getElementById("countdownBubble");
+
+  // Menu 元件
+  const menuOverlay      = document.getElementById("menuOverlay");
+  const tabSingle        = document.getElementById("tabSingle");
+  const tabVersus        = document.getElementById("tabVersus");
+  const panelSingle      = document.getElementById("panelSingle");
+  const panelVersus      = document.getElementById("panelVersus");
+  const singleNameInput  = document.getElementById("singleNameInput");
+  const p1NameInput      = document.getElementById("p1NameInput");
+  const p2NameInput      = document.getElementById("p2NameInput");
+  const btnStartSingle   = document.getElementById("btnStartSingle");
+  const btnStartVersus   = document.getElementById("btnStartVersus");
+
+  // 單人狀態
+  let singleName = "Lexi";
+  let singleSnake = [];
+  let singleDir = { x: 1, y: 0 };
+  let singlePendingDir = { x: 1, y: 0 };
+  let singleScore = 0;
+
+  // 雙人狀態
+  let p1Name = "Player 1";
+  let p2Name = "Player 2";
+  let p1Snake = [];
+  let p2Snake = [];
+  let p1Dir = { x: 1, y: 0 };
+  let p2Dir = { x: 1, y: 0 };
+  let p1PendingDir = { x: 1, y: 0 };
+  let p2PendingDir = { x: 1, y: 0 };
+  let p1Score = 0;
+  let p2Score = 0;
+  let versusResultText = "";
+
+  // 共用食物
+  let food = null;
+
+  // Game Over 描述
+  let gameOverTitle = "";
+  let gameOverSub   = "";
+
+  // 時間累積
+  let lastTimestamp = 0;
+  let accumulator   = 0;
+
+  // ======== 小工具 ========
+  function wrapPosition(pos) {
+    let x = pos.x;
+    let y = pos.y;
+    if (x < 0) x = GRID_WIDTH - 1;
+    if (x >= GRID_WIDTH) x = 0;
+    if (y < 0) y = GRID_HEIGHT - 1;
+    if (y >= GRID_HEIGHT) y = 0;
+    return { x, y };
   }
-}
 
-function saveLeaderboard() {
-  try {
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
-  } catch (e) {}
-}
-
-function addScoreToLeaderboard(name, score) {
-  leaderboard.push({ name, score, time: Date.now() });
-  leaderboard.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.time - b.time;
-  });
-  leaderboard = leaderboard.slice(0, 10);
-  saveLeaderboard();
-  renderLeaderboard();
-}
-
-function renderLeaderboard() {
-  const list = document.getElementById("leaderboard-list");
-  list.innerHTML = "";
-
-  if (!leaderboard.length) {
-    const li = document.createElement("li");
-    li.textContent = "目前還沒有紀錄，快來當第一名！";
-    list.appendChild(li);
-    return;
-  }
-
-  leaderboard.forEach(item => {
-    const li = document.createElement("li");
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "name";
-    nameSpan.textContent = item.name || "匿名狗狗";
-
-    const scoreSpan = document.createElement("span");
-    scoreSpan.className = "score";
-    scoreSpan.textContent = `　${item.score} 分`;
-
-    li.appendChild(nameSpan);
-    li.appendChild(scoreSpan);
-    list.appendChild(li);
-  });
-}
-
-/* ------------------------------------------------------
-   🐕 遊戲狀態變數
------------------------------------------------------- */
-// 單人
-let snake;
-let direction;
-let pendingDirection;
-let food;
-let score = 0;
-let hasRecordedThisGame = false;
-
-// 雙人
-let snake1, snake2;
-let dir1, dir2;
-let pendingDir1, pendingDir2;
-let score1 = 0, score2 = 0;
-let versusResultText = "";
-
-// 通用
-let gameOver = false;
-let gameMode = null;  // "single" | "versus" | null
-let heartEffects = [];
-
-// 動態速度用
-let lastMoveTime = 0;
-
-/* ------------------------------------------------------
-   🎮 主選單與啟動
------------------------------------------------------- */
-const startScreen   = document.getElementById("start-screen");
-const countdownElem = document.getElementById("countdown");
-
-document.getElementById("btn-start-single").onclick = () => {
-  const inputName = document.getElementById("player-name").value.trim();
-  currentPlayerName = inputName || "匿名狗狗";
-  startGameSequence("single");
-};
-
-document.getElementById("btn-start-versus").onclick = () => {
-  startGameSequence("versus");
-};
-
-function startGameSequence(mode) {
-  gameMode = mode;
-  startScreen.style.display = "none";
-  startCountdown(() => {
-    if (mode === "single") {
-      resetGameSingle();
-    } else {
-      resetGameVersus();
+  function randomFoodPosition(snakeArrays) {
+    while (true) {
+      const x = Math.floor(Math.random() * GRID_WIDTH);
+      const y = Math.floor(Math.random() * GRID_HEIGHT);
+      let conflict = false;
+      for (const arr of snakeArrays) {
+        for (const s of arr) {
+          if (s.x === x && s.y === y) {
+            conflict = true;
+            break;
+          }
+        }
+        if (conflict) break;
+      }
+      if (!conflict) return { x, y };
     }
-    lastMoveTime = 0; // 倒數完重新計時
-  });
-}
+  }
 
-/* ------------------------------------------------------
-   ⏱️ IG Reels 風格倒數 + 倒數音效
------------------------------------------------------- */
-function startCountdown(callback) {
-  countdownElem.style.display = "block";
-  let num = 3;
+  function getCurrentSpeed() {
+    let s = BASE_SPEED;
+    if (currentMode === "single") {
+      const lvl = Math.floor(singleScore / 10);
+      s = BASE_SPEED - lvl * SPEED_STEP;
+    } else if (currentMode === "versus") {
+      const maxScore = Math.max(p1Score, p2Score);
+      const lvl = Math.floor(maxScore / 10);
+      s = BASE_SPEED - lvl * SPEED_STEP;
+    }
+    if (s < MIN_SPEED) s = MIN_SPEED;
+    return s;
+  }
 
-  function run() {
-    countdownElem.innerText = num === 0 ? "GO!" : num;
-    countdownElem.style.animation = "none";
-    countdownElem.offsetHeight; // 強制 reflow
-    countdownElem.style.animation = "pop 0.4s ease-out";
+  // ======== 背景 ========
+  function drawBackground() {
+    // 天空
+    ctx.fillStyle = SKY_COLOR;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT * 0.4);
 
-    // 倒數音效（3、2、1、GO 都敲一下）
-    try {
-      countdownBeep.currentTime = 0;
-      countdownBeep.play().catch(()=>{});
-    } catch (e) {}
+    // 草地
+    ctx.fillStyle = GRASS_COLOR;
+    ctx.fillRect(0, HEIGHT * 0.4, WIDTH, HEIGHT * 0.6);
 
-    if (num === 0) {
-      setTimeout(() => {
-        countdownElem.style.display = "none";
-        callback();
-      }, 500);
+    // 小路
+    const pathWidth = CELL_SIZE * 4;
+    ctx.fillStyle = PATH_COLOR;
+    ctx.fillRect(
+      WIDTH / 2 - pathWidth / 2,
+      HEIGHT * 0.4,
+      pathWidth,
+      HEIGHT * 0.6
+    );
+
+    // 樹木
+    const treeXs = [CELL_SIZE * 3, CELL_SIZE * 7, CELL_SIZE * 22, CELL_SIZE * 26];
+    for (const x of treeXs) {
+      ctx.fillStyle = "#92400e";
+      ctx.fillRect(x - 6, HEIGHT * 0.4 - 10, 12, 40);
+      ctx.beginPath();
+      ctx.fillStyle = "#16a34a";
+      ctx.ellipse(
+        x,
+        HEIGHT * 0.4 - 20,
+        20,
+        24,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    // 太陽
+    ctx.font = "28px 'Apple Color Emoji','Segoe UI Emoji'";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("☀️", WIDTH - 60, 48);
+  }
+
+  // ======== 初始化：單人 ========
+  function prepareSingleGame() {
+    currentMode = "single";
+    singleName = singleNameInput.value.trim() || "Lexi";
+    singleSnake = [
+      { x: 4, y: 6 },
+      { x: 3, y: 6 },
+      { x: 2, y: 6 }
+    ];
+    singleDir = { x: 1, y: 0 };
+    singlePendingDir = { x: 1, y: 0 };
+    singleScore = 0;
+    food = randomFoodPosition([singleSnake]);
+    gameOver = false;
+    gameOverTitle = "";
+    gameOverSub = "";
+  }
+
+  // ======== 初始化：雙人 ========
+  function prepareVersusGame() {
+    currentMode = "versus";
+    p1Name = p1NameInput.value.trim() || "Player 1";
+    p2Name = p2NameInput.value.trim() || "Player 2";
+
+    // P1：左上
+    p1Snake = [
+      { x: 4, y: 5 },
+      { x: 3, y: 5 },
+      { x: 2, y: 5 }
+    ];
+    // P2：左下
+    p2Snake = [
+      { x: 4, y: GRID_HEIGHT - 6 },
+      { x: 3, y: GRID_HEIGHT - 6 },
+      { x: 2, y: GRID_HEIGHT - 6 }
+    ];
+
+    p1Dir = { x: 1, y: 0 };
+    p2Dir = { x: 1, y: 0 };
+    p1PendingDir = { x: 1, y: 0 };
+    p2PendingDir = { x: 1, y: 0 };
+    p1Score = 0;
+    p2Score = 0;
+    versusResultText = "";
+    food = randomFoodPosition([p1Snake, p2Snake]);
+    gameOver = false;
+    gameOverTitle = "";
+    gameOverSub = "";
+  }
+
+  // ======== 倒數動畫 ========
+  function startCountdown(onFinish) {
+    countingDown = true;
+    let items = ["3", "2", "1", "GO!"];
+    let index = 0;
+
+    function next() {
+      if (index >= items.length) {
+        countdownOverlay.classList.add("hidden");
+        countingDown = false;
+        if (onFinish) onFinish();
+        return;
+      }
+      const label = items[index];
+      countdownBubble.textContent = label;
+      countdownBubble.style.animation = "none";
+      // 重新觸發動畫
+      void countdownBubble.offsetWidth;
+      countdownBubble.style.animation = "pop 0.9s ease-out forwards";
+
+      countdownOverlay.classList.remove("hidden");
+
+      try {
+        countdownSound.currentTime = 0;
+        countdownSound.play().catch(()=>{});
+      } catch (e) {}
+
+      index++;
+      setTimeout(next, 900);
+    }
+    next();
+  }
+
+  // ======== 單人更新 ========
+  function stepSingle() {
+    singleDir = { ...singlePendingDir };
+    const head = singleSnake[0];
+    const newHeadWrapped = wrapPosition({ x: head.x + singleDir.x, y: head.y + singleDir.y });
+
+    // 撞到自己
+    if (singleSnake.some((s, i) => i !== singleSnake.length - 1 && s.x === newHeadWrapped.x && s.y === newHeadWrapped.y)) {
+      gameOver = true;
+      gameOverTitle = "Game Over";
+      gameOverSub   = `${singleName} 撞到自己了`;
+      try {
+        gameoverSound.currentTime = 0;
+        gameoverSound.play().catch(()=>{});
+      } catch (e) {}
       return;
     }
-    num--;
-    setTimeout(run, 800);
-  }
-  run();
-}
 
-/* ------------------------------------------------------
-   🔄 遊戲重置
------------------------------------------------------- */
-function resetGameSingle() {
-  snake = [
-    { x: 15, y: 15 },
-    { x: 14, y: 15 },
-    { x: 13, y: 15 },
-  ];
-  direction        = { x: 1, y: 0 };
-  pendingDirection = { x: 1, y: 0 };
-  score            = 0;
-  gameOver         = false;
-  hasRecordedThisGame = false;
-  heartEffects     = [];
-  food             = randomFoodSingle();
-}
+    singleSnake.unshift(newHeadWrapped);
 
-function resetGameVersus() {
-  // P1 左上
-  snake1 = [
-    { x: 3, y: 5 },
-    { x: 2, y: 5 },
-    { x: 1, y: 5 },
-  ];
-  dir1        = { x: 1,  y: 0 };
-  pendingDir1 = { x: 1,  y: 0 };
-
-  // P2 左下
-  snake2 = [
-    { x: 3, y: 24 },
-    { x: 2, y: 24 },
-    { x: 1, y: 24 },
-  ];
-  dir2        = { x: 1,  y: 0 };
-  pendingDir2 = { x: 1,  y: 0 };
-
-  score1 = 0;
-  score2 = 0;
-  gameOver = false;
-  versusResultText = "";
-  heartEffects = [];
-  food = randomFoodVersus();
-}
-
-/* ------------------------------------------------------
-   🦴 食物產生
------------------------------------------------------- */
-function randomFoodSingle() {
-  while (true) {
-    const x = Math.floor(Math.random() * GRID_W);
-    const y = Math.floor(Math.random() * GRID_H);
-    if (!snake.some(s => s.x === x && s.y === y)) {
-      return { x, y };
-    }
-  }
-}
-
-function randomFoodVersus() {
-  while (true) {
-    const x = Math.floor(Math.random() * GRID_W);
-    const y = Math.floor(Math.random() * GRID_H);
-    if (
-      !snake1.some(s => s.x === x && s.y === y) &&
-      !snake2.some(s => s.x === x && s.y === y)
-    ) {
-      return { x, y };
-    }
-  }
-}
-
-/* ------------------------------------------------------
-   ⚡ 依分數計算目前速度
------------------------------------------------------- */
-function getCurrentSpeed() {
-  if (!gameMode) return BASE_SPEED;
-
-  if (gameMode === "single") {
-    const level = Math.floor(score / 10);           // 每 10 分升一級
-    return Math.max(BASE_SPEED - level * SPEED_STEP, MIN_SPEED);
-  } else {
-    const total = score1 + score2;                  // 雙人用總分來加速
-    const level = Math.floor(total / 10);
-    return Math.max(BASE_SPEED - level * SPEED_STEP, MIN_SPEED);
-  }
-}
-
-/* ------------------------------------------------------
-   🎹 鍵盤控制
------------------------------------------------------- */
-document.addEventListener("keydown", e => {
-  const key = e.key;
-
-  if (key === "r" || key === "R") {
-    if (gameMode === "single" && gameOver) resetGameSingle();
-    if (gameMode === "versus" && gameOver) resetGameVersus();
-    return;
-  }
-
-  if (key === "m" || key === "M") {
-    if (gameOver) {
-      gameMode = null;
-      startScreen.style.display = "flex";
-    }
-    return;
-  }
-
-  if (!gameMode || gameOver) return;
-
-  // 單人：WASD & 方向鍵都控制同一隻
-  if (gameMode === "single") {
-    switch (key) {
-      case "ArrowUp":
-      case "w":
-      case "W":
-        changeDirSingle(0, -1); break;
-      case "ArrowDown":
-      case "s":
-      case "S":
-        changeDirSingle(0, 1); break;
-      case "ArrowLeft":
-      case "a":
-      case "A":
-        changeDirSingle(-1, 0); break;
-      case "ArrowRight":
-      case "d":
-      case "D":
-        changeDirSingle(1, 0); break;
-    }
-  }
-
-  // 雙人：P1=WASD, P2=方向鍵
-  if (gameMode === "versus") {
-    switch (key) {
-      // P1 (WASD)
-      case "w": case "W":
-        changeDir1(0, -1); break;
-      case "s": case "S":
-        changeDir1(0, 1); break;
-      case "a": case "A":
-        changeDir1(-1, 0); break;
-      case "d": case "D":
-        changeDir1(1, 0); break;
-
-      // P2 (方向鍵)
-      case "ArrowUp":
-        changeDir2(0, -1); break;
-      case "ArrowDown":
-        changeDir2(0, 1); break;
-      case "ArrowLeft":
-        changeDir2(-1, 0); break;
-      case "ArrowRight":
-        changeDir2(1, 0); break;
-    }
-  }
-});
-
-function changeDirSingle(dx, dy) {
-  if (dx === -direction.x && dy === -direction.y) return;
-  pendingDirection = { x: dx, y: dy };
-}
-
-function changeDir1(dx, dy) {
-  if (dx === -dir1.x && dy === -dir1.y) return;
-  pendingDir1 = { x: dx, y: dy };
-}
-
-function changeDir2(dx, dy) {
-  if (dx === -dir2.x && dy === -dir2.y) return;
-  pendingDir2 = { x: dx, y: dy };
-}
-
-/* ------------------------------------------------------
-   🐕 單人移動邏輯（穿牆，不出界死亡）
------------------------------------------------------- */
-function moveSingle() {
-  const head = snake[0];
-
-  // ✅ 穿牆：用環狀座標
-  const newHead = {
-    x: (head.x + direction.x + GRID_W) % GRID_W,
-    y: (head.y + direction.y + GRID_H) % GRID_H
-  };
-
-  // 撞到自己才會死
-  if (snake.some(s => s.x === newHead.x && s.y === newHead.y)) {
-    triggerGameOverSingle();
-    return;
-  }
-
-  snake.unshift(newHead);
-
-  if (newHead.x === food.x && newHead.y === food.y) {
-    score += 1;
-    boneSound.currentTime = 0;
-    boneSound.play().catch(()=>{});
-
-    heartEffects.push({
-      x: newHead.x * CELL_SIZE + CELL_SIZE / 2,
-      y: newHead.y * CELL_SIZE + CELL_SIZE / 2,
-      life: 12,
-    });
-
-    food = randomFoodSingle();
-  } else {
-    snake.pop();
-  }
-}
-
-function triggerGameOverSingle() {
-  if (gameOver) return;
-  gameOver = true;
-  gameoverSound.currentTime = 0;
-  gameoverSound.play().catch(()=>{});
-
-  if (gameMode === "single" && !hasRecordedThisGame) {
-    hasRecordedThisGame = true;
-    addScoreToLeaderboard(currentPlayerName, score);
-  }
-}
-
-/* ------------------------------------------------------
-   🐕🐕 雙人移動邏輯（穿牆，撞自己/對手才死）
------------------------------------------------------- */
-function moveVersus() {
-  const head1 = snake1[0];
-  const head2 = snake2[0];
-
-  // ✅ 穿牆
-  const newHead1 = {
-    x: (head1.x + dir1.x + GRID_W) % GRID_W,
-    y: (head1.y + dir1.y + GRID_H) % GRID_H
-  };
-  const newHead2 = {
-    x: (head2.x + dir2.x + GRID_W) % GRID_W,
-    y: (head2.y + dir2.y + GRID_H) % GRID_H
-  };
-
-  let dead1 = false;
-  let dead2 = false;
-
-  // 撞到自己
-  if (snake1.some(s => s.x === newHead1.x && s.y === newHead1.y)) dead1 = true;
-  if (snake2.some(s => s.x === newHead2.x && s.y === newHead2.y)) dead2 = true;
-
-  // 撞到對方身體
-  if (snake2.some(s => s.x === newHead1.x && s.y === newHead1.y)) dead1 = true;
-  if (snake1.some(s => s.x === newHead2.x && s.y === newHead2.y)) dead2 = true;
-
-  // 頭對撞
-  if (newHead1.x === newHead2.x && newHead1.y === newHead2.y) {
-    dead1 = true;
-    dead2 = true;
-  }
-
-  if (dead1 || dead2) {
-    triggerGameOverVersus(dead1, dead2);
-    return;
-  }
-
-  // 都還活著 → 前進
-  snake1.unshift(newHead1);
-  snake2.unshift(newHead2);
-
-  const p1Eat = (newHead1.x === food.x && newHead1.y === food.y);
-  const p2Eat = (newHead2.x === food.x && newHead2.y === food.y);
-
-  if (p1Eat || p2Eat) {
-    boneSound.currentTime = 0;
-    boneSound.play().catch(()=>{});
-  }
-
-  if (p1Eat) {
-    score1 += 1;
-    heartEffects.push({
-      x: newHead1.x * CELL_SIZE + CELL_SIZE / 2,
-      y: newHead1.y * CELL_SIZE + CELL_SIZE / 2,
-      life: 12,
-    });
-  } else {
-    snake1.pop();
-  }
-
-  if (p2Eat) {
-    score2 += 1;
-    heartEffects.push({
-      x: newHead2.x * CELL_SIZE + CELL_SIZE / 2,
-      y: newHead2.y * CELL_SIZE + CELL_SIZE / 2,
-      life: 12,
-    });
-  } else {
-    snake2.pop();
-  }
-
-  if (p1Eat || p2Eat) {
-    food = randomFoodVersus();
-  }
-}
-
-function triggerGameOverVersus(dead1, dead2) {
-  if (gameOver) return;
-  gameOver = true;
-  gameoverSound.currentTime = 0;
-  gameoverSound.play().catch(()=>{});
-
-  if (dead1 && !dead2) {
-    versusResultText = "玩家2 勝利！";
-  } else if (!dead1 && dead2) {
-    versusResultText = "玩家1 勝利！";
-  } else {
-    versusResultText = "平手！";
-  }
-}
-
-/* ------------------------------------------------------
-   🎨 背景繪製（天空 + 草地 + 小路 + 樹 + 太陽）
------------------------------------------------------- */
-function drawBackground() {
-  // 天空
-  ctx.fillStyle = "#9fd5ff";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT * 0.4);
-
-  // 草地
-  ctx.fillStyle = "#15803d";
-  ctx.fillRect(0, HEIGHT * 0.4, WIDTH, HEIGHT * 0.6);
-
-  // 小路
-  const pathW = CELL_SIZE * 4;
-  ctx.fillStyle = "#4b5563";
-  ctx.fillRect(WIDTH/2 - pathW/2, HEIGHT * 0.4, pathW, HEIGHT * 0.6);
-
-  // 樹木
-  const treeXs = [CELL_SIZE * 3, CELL_SIZE * 7, CELL_SIZE * 22, CELL_SIZE * 26];
-  for (const x of treeXs) {
-    // 樹幹
-    ctx.fillStyle = "#92400e";
-    ctx.fillRect(x - 6, HEIGHT * 0.4 - 10, 12, 40);
-
-    // 樹冠
-    ctx.beginPath();
-    ctx.fillStyle = "#16a34a";
-    ctx.ellipse(
-      x,
-      HEIGHT * 0.4 - 20,
-      20,
-      24,
-      0,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
-
-  // 太陽
-  ctx.font = "28px 'Apple Color Emoji'";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText("☀️", WIDTH - 60, 10);
-}
-
-/* ------------------------------------------------------
-   🎨 畫面渲染
------------------------------------------------------- */
-function draw() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  drawBackground();
-
-  if (!gameMode) return;
-
-  // 分數
-  ctx.textBaseline = "top";
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#ffffff";
-
-  if (gameMode === "single") {
-    ctx.textAlign = "left";
-    ctx.fillText("Score: " + score, 10, 10);
-  } else if (gameMode === "versus") {
-    ctx.textAlign = "left";
-    ctx.fillText("P1: " + score1, 10, 10);
-
-    ctx.textAlign = "right";
-    ctx.fillText("P2: " + score2, WIDTH - 10, 10);
-  }
-
-  // 食物
-  if (food) {
-    const fx = food.x * CELL_SIZE + CELL_SIZE / 2;
-    const fy = food.y * CELL_SIZE + CELL_SIZE / 2;
-    ctx.font = "24px 'Apple Color Emoji'";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("🦴", fx, fy);
-  }
-
-  // 狗狗
-  ctx.font = "24px 'Apple Color Emoji'";
-  if (gameMode === "single" && snake) {
-    for (const seg of snake) {
-      const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
-      const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
-      ctx.fillText("🐕", cx, cy);
-    }
-  }
-
-  if (gameMode === "versus") {
-    if (snake1) {
-      for (const seg of snake1) {
-        const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
-        const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
-        ctx.fillText("🐕", cx, cy); // P1
-      }
-    }
-    if (snake2) {
-      for (const seg of snake2) {
-        const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
-        const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
-        ctx.fillText("🐶", cx, cy); // P2
-      }
-    }
-  }
-
-  // ❤️ 愛心特效
-  const nextHearts = [];
-  for (const h of heartEffects) {
-    ctx.font = "20px 'Apple Color Emoji'";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("❤️", h.x, h.y);
-    h.y -= 2;
-    h.life -= 1;
-    if (h.life > 0) nextHearts.push(h);
-  }
-  heartEffects = nextHearts;
-
-  // Game Over 畫面
-  if (gameOver) {
-    ctx.fillStyle = "rgba(15,23,42,0.9)";
-    const w = 360, h = 160;
-    const x = WIDTH / 2 - w / 2;
-    const y = HEIGHT / 2 - h / 2;
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = "white";
-    ctx.strokeRect(x, y, w, h);
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#f97373";
-    ctx.font = "26px Arial";
-
-    if (gameMode === "versus" && versusResultText) {
-      ctx.fillText(versusResultText, WIDTH / 2, HEIGHT / 2 - 25);
-      ctx.font = "16px Arial";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(
-        `P1：${score1} 分    P2：${score2} 分`,
-        WIDTH / 2,
-        HEIGHT / 2 + 2
-      );
+    // 吃到骨頭
+    if (newHeadWrapped.x === food.x && newHeadWrapped.y === food.y) {
+      singleScore += 1;
+      try {
+        boneSound.currentTime = 0;
+        boneSound.play().catch(()=>{});
+      } catch (e) {}
+      food = randomFoodPosition([singleSnake]);
     } else {
-      ctx.fillText("Game Over", WIDTH / 2, HEIGHT / 2 - 10);
-    }
-
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText("R：再玩一次   M：回主選單", WIDTH / 2, HEIGHT / 2 + 35);
-  }
-}
-
-/* ------------------------------------------------------
-   🔁 遊戲迴圈（requestAnimationFrame + 動態速度）
------------------------------------------------------- */
-function gameLoop(timestamp) {
-  if (!lastMoveTime) lastMoveTime = timestamp;
-
-  const nowSpeed = getCurrentSpeed();
-  const delta = timestamp - lastMoveTime;
-
-  if (gameMode && !gameOver && delta >= nowSpeed) {
-    lastMoveTime = timestamp;
-
-    if (gameMode === "single") {
-      direction = { ...pendingDirection };
-      moveSingle();
-    } else if (gameMode === "versus") {
-      dir1 = { ...pendingDir1 };
-      dir2 = { ...pendingDir2 };
-      moveVersus();
+      singleSnake.pop();
     }
   }
 
-  draw();
-  requestAnimationFrame(gameLoop);
-}
+  // ======== 雙人更新 ========
+  function stepVersus() {
+    p1Dir = { ...p1PendingDir };
+    p2Dir = { ...p2PendingDir };
 
-/* ------------------------------------------------------
-   🚀 啟動
------------------------------------------------------- */
-loadLeaderboard();
-renderLeaderboard();
-draw();                 // 背景 + 樹 + 太陽
-requestAnimationFrame(gameLoop);
+    const p1Head = p1Snake[0];
+    const p2Head = p2Snake[0];
+
+    const p1New = wrapPosition({ x: p1Head.x + p1Dir.x, y: p1Head.y + p1Dir.y });
+    const p2New = wrapPosition({ x: p2Head.x + p2Dir.x, y: p2Head.y + p2Dir.y });
+
+    // 頭撞頭
+    if (p1New.x === p2New.x && p1New.y === p2New.y) {
+      gameOver = true;
+      gameOverTitle = "平手！";
+      gameOverSub   = "兩隻狗狗一起撞上了 🥲";
+      try {
+        gameoverSound.currentTime = 0;
+        gameoverSound.play().catch(()=>{});
+      } catch (e) {}
+      return;
+    }
+
+    // 檢查 P1 撞到自己或對手
+    let p1Dead = false;
+    if (p1Snake.some((s, i) => i !== p1Snake.length - 1 && s.x === p1New.x && s.y === p1New.y)) {
+      p1Dead = true;
+    }
+    if (p2Snake.some(s => s.x === p1New.x && s.y === p1New.y)) {
+      p1Dead = true;
+    }
+
+    // 檢查 P2 撞到自己或對手
+    let p2Dead = false;
+    if (p2Snake.some((s, i) => i !== p2Snake.length - 1 && s.x === p2New.x && s.y === p2New.y)) {
+      p2Dead = true;
+    }
+    if (p1Snake.some(s => s.x === p2New.x && s.y === p2New.y)) {
+      p2Dead = true;
+    }
+
+    if (p1Dead || p2Dead) {
+      gameOver = true;
+      if (p1Dead && p2Dead) {
+        gameOverTitle = "平手！";
+        gameOverSub   = "兩隻狗狗同歸於盡 🥲";
+      } else if (p1Dead) {
+        gameOverTitle = `${p2Name} 獲勝！`;
+        gameOverSub   = `${p1Name} 撞牆或撞到對手了`;
+      } else {
+        gameOverTitle = `${p1Name} 獲勝！`;
+        gameOverSub   = `${p2Name} 撞牆或撞到對手了`;
+      }
+      try {
+        gameoverSound.currentTime = 0;
+        gameoverSound.play().catch(()=>{});
+      } catch (e) {}
+      return;
+    }
+
+    // 沒死 → 更新位置
+    p1Snake.unshift(p1New);
+    p2Snake.unshift(p2New);
+
+    // 誰吃到骨頭
+    let p1Ate = (p1New.x === food.x && p1New.y === food.y);
+    let p2Ate = (p2New.x === food.x && p2New.y === food.y);
+
+    if (p1Ate && p2Ate) {
+      p1Score += 1;
+      p2Score += 1;
+      try { boneSound.currentTime = 0; boneSound.play().catch(()=>{}); } catch(e){}
+      food = randomFoodPosition([p1Snake, p2Snake]);
+    } else if (p1Ate) {
+      p1Score += 1;
+      try { boneSound.currentTime = 0; boneSound.play().catch(()=>{}); } catch(e){}
+      food = randomFoodPosition([p1Snake, p2Snake]);
+    } else if (p2Ate) {
+      p2Score += 1;
+      try { boneSound.currentTime = 0; boneSound.play().catch(()=>{}); } catch(e){}
+      food = randomFoodPosition([p1Snake, p2Snake]);
+    } else {
+      p1Snake.pop();
+      p2Snake.pop();
+    }
+  }
+
+  // ======== 繪圖 ========
+  function drawGame() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    drawBackground();
+
+    // 畫食物
+    if (food) {
+      const fx = food.x * CELL_SIZE + CELL_SIZE / 2;
+      const fy = food.y * CELL_SIZE + CELL_SIZE / 2;
+      ctx.font = "24px 'Apple Color Emoji','Segoe UI Emoji'";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🦴", fx, fy);
+    }
+
+    if (currentMode === "single") {
+      // 單人：狗狗
+      for (let i = 0; i < singleSnake.length; i++) {
+        const seg = singleSnake[i];
+        const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
+        const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
+        ctx.font = "24px 'Apple Color Emoji','Segoe UI Emoji'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🐕", cx, cy);
+      }
+
+      // 分數文字
+      ctx.font = "20px -apple-system, 'Segoe UI'";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`${singleName}：${singleScore} 分`, 10, 10);
+
+    } else if (currentMode === "versus") {
+      // 雙人：P1 左上棕狗、P2 左下白狗
+      for (let i = 0; i < p1Snake.length; i++) {
+        const seg = p1Snake[i];
+        const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
+        const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
+        ctx.font = "24px 'Apple Color Emoji','Segoe UI Emoji'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🐕", cx, cy);
+      }
+      for (let i = 0; i < p2Snake.length; i++) {
+        const seg = p2Snake[i];
+        const cx = seg.x * CELL_SIZE + CELL_SIZE / 2;
+        const cy = seg.y * CELL_SIZE + CELL_SIZE / 2;
+        ctx.font = "24px 'Apple Color Emoji','Segoe UI Emoji'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🐩", cx, cy);
+      }
+
+      // 分數條
+      ctx.font = "18px -apple-system, 'Segoe UI'";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`${p1Name}：${p1Score} 分`, 10, 10);
+      ctx.textAlign = "right";
+      ctx.fillText(`${p2Name}：${p2Score} 分`, WIDTH - 10, 10);
+
+      // 中央 Versus 文本
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "18px -apple-system, 'Segoe UI'";
+      ctx.fillText(`Versus | P1：${p1Score} 分 ｜ P2：${p2Score} 分`, WIDTH / 2, 10);
+    }
+
+    // Game Over 畫面
+    if (gameOver) {
+      ctx.fillStyle = "rgba(15,23,42,0.9)";
+      const w = 320, h = 140;
+      const x = WIDTH / 2 - w / 2;
+      const y = HEIGHT / 2 - h / 2;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = "#ffffff";
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "26px Arial";
+      ctx.fillStyle = "#f97373";
+      ctx.fillText(gameOverTitle || "Game Over", WIDTH / 2, HEIGHT / 2 - 25);
+
+      ctx.font = "14px Arial";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(gameOverSub || "按 R 再玩一次 ｜ M 回主選單", WIDTH / 2, HEIGHT / 2 + 10);
+    }
+  }
+
+  // ======== 主迴圈 ========
+  function loop(timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const delta = timestamp - lastTimestamp;
+    lastTimestamp = timestamp;
+
+    accumulator += delta;
+
+    const stepInterval = getCurrentSpeed();
+
+    while (accumulator >= stepInterval) {
+      accumulator -= stepInterval;
+      if (gameRunning && !gameOver && !countingDown) {
+        if (currentMode === "single") stepSingle();
+        else if (currentMode === "versus") stepVersus();
+      }
+    }
+
+    drawGame();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ======== 控制：鍵盤 ========
+  document.addEventListener("keydown", (e) => {
+    if (currentMode === "single") {
+      // 單人：方向鍵 + WASD 都可以
+      switch (e.key) {
+        case "ArrowUp":
+        case "w":
+        case "W":
+          if (singleDir.y !== 1) singlePendingDir = { x: 0, y: -1 };
+          break;
+        case "ArrowDown":
+        case "s":
+        case "S":
+          if (singleDir.y !== -1) singlePendingDir = { x: 0, y: 1 };
+          break;
+        case "ArrowLeft":
+        case "a":
+        case "A":
+          if (singleDir.x !== 1) singlePendingDir = { x: -1, y: 0 };
+          break;
+        case "ArrowRight":
+        case "d":
+        case "D":
+          if (singleDir.x !== -1) singlePendingDir = { x: 1, y: 0 };
+          break;
+      }
+    } else if (currentMode === "versus") {
+      // 雙人：P1 WASD、P2 方向鍵
+      switch (e.key) {
+        // P1
+        case "w":
+        case "W":
+          if (p1Dir.y !== 1) p1PendingDir = { x: 0, y: -1 };
+          break;
+        case "s":
+        case "S":
+          if (p1Dir.y !== -1) p1PendingDir = { x: 0, y: 1 };
+          break;
+        case "a":
+        case "A":
+          if (p1Dir.x !== 1) p1PendingDir = { x: -1, y: 0 };
+          break;
+        case "d":
+        case "D":
+          if (p1Dir.x !== -1) p1PendingDir = { x: 1, y: 0 };
+          break;
+        // P2
+        case "ArrowUp":
+          if (p2Dir.y !== 1) p2PendingDir = { x: 0, y: -1 };
+          break;
+        case "ArrowDown":
+          if (p2Dir.y !== -1) p2PendingDir = { x: 0, y: 1 };
+          break;
+        case "ArrowLeft":
+          if (p2Dir.x !== 1) p2PendingDir = { x: -1, y: 0 };
+          break;
+        case "ArrowRight":
+          if (p2Dir.x !== -1) p2PendingDir = { x: 1, y: 0 };
+          break;
+      }
+    }
+
+    // 共用快捷鍵
+    if (e.key === "r" || e.key === "R") {
+      if (currentMode === "single") {
+        prepareSingleGame();
+        gameOver = false;
+        gameRunning = true;
+      } else if (currentMode === "versus") {
+        prepareVersusGame();
+        gameOver = false;
+        gameRunning = true;
+      }
+    }
+    if (e.key === "m" || e.key === "M") {
+      // 回主選單
+      currentMode = "menu";
+      gameRunning = false;
+      gameOver = false;
+      menuOverlay.classList.remove("hidden");
+    }
+  });
+
+  // ======== Menu Tab 切換 ========
+  function setModeTab(mode) {
+    if (mode === "single") {
+      tabSingle.classList.add("active");
+      tabVersus.classList.remove("active");
+      panelSingle.classList.remove("hidden");
+      panelVersus.classList.add("hidden");
+    } else {
+      tabSingle.classList.remove("active");
+      tabVersus.classList.add("active");
+      panelSingle.classList.add("hidden");
+      panelVersus.classList.remove("hidden");
+    }
+  }
+
+  tabSingle.addEventListener("click", () => setModeTab("single"));
+  tabVersus.addEventListener("click", () => setModeTab("versus"));
+
+  // ======== 按鈕：開始單人 / 雙人 ========
+  btnStartSingle.addEventListener("click", () => {
+    setModeTab("single");
+    menuOverlay.classList.add("hidden");
+    prepareSingleGame();
+    gameRunning = false;
+    gameOver = false;
+    startCountdown(() => {
+      gameRunning = true;
+    });
+  });
+
+  btnStartVersus.addEventListener("click", () => {
+    setModeTab("versus");
+    menuOverlay.classList.add("hidden");
+    prepareVersusGame();
+    gameRunning = false;
+    gameOver = false;
+    startCountdown(() => {
+      gameRunning = true;
+    });
+  });
+
+  // 初始畫面：只顯示背景（menu 蓋在上面）
+  drawGame();
 </script>
 </body>
 </html>
+
